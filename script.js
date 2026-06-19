@@ -1,5 +1,9 @@
 const $ = (id) => document.getElementById(id);
 
+const pages = document.querySelectorAll(".page");
+const pageButtons = document.querySelectorAll("[data-page]");
+const requireResultButtons = document.querySelectorAll("[data-requires-result]");
+
 const video = $("video");
 const frameCanvas = $("frameCanvas");
 const resultCanvas = $("resultCanvas");
@@ -29,6 +33,12 @@ const penBtn = $("penBtn");
 const eraserBtn = $("eraserBtn");
 const clearDrawingBtn = $("clearDrawingBtn");
 
+const originalPreviewCanvas = $("originalPreviewCanvas");
+const editedPreviewCanvas = $("editedPreviewCanvas");
+
+const downloadOriginalFinalBtn = $("downloadOriginalFinalBtn");
+const downloadEditedFinalBtn = $("downloadEditedFinalBtn");
+
 let stream = null;
 let isCapturing = false;
 let originalDataUrl = null;
@@ -38,6 +48,25 @@ let currentTool = "pen";
 let lastPoint = null;
 
 const MAX_CAPTURE_SIDE = 900;
+
+function showPage(pageId) {
+  pages.forEach((page) => {
+    page.classList.toggle("active", page.id === pageId);
+  });
+
+  document.querySelectorAll(".step-dot").forEach((dot) => {
+    dot.classList.toggle("active", dot.dataset.page === pageId);
+  });
+
+  if (pageId === "page-final") {
+    renderFinalPreview();
+  }
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
 
 function setStatus(message) {
   statusText.textContent = message;
@@ -58,6 +87,10 @@ function setButtons() {
 
   downloadOriginalBtn.disabled = !hasResult;
   downloadEditedBtn.disabled = !hasResult;
+
+  requireResultButtons.forEach((button) => {
+    button.disabled = !hasResult;
+  });
 }
 
 function getCanvasSizeFromVideo() {
@@ -114,18 +147,17 @@ async function startCamera() {
     });
 
     video.srcObject = stream;
-
     await video.play();
 
     setTimeout(() => {
       resizeCanvases();
     }, 300);
 
-    setStatus("카메라가 시작되었습니다. 촬영할 준비가 되면 라이트페인팅 촬영 버튼을 누르세요.");
+    setStatus("카메라가 시작되었습니다. 촬영할 준비가 되면 버튼을 누르세요.");
   } catch (error) {
     console.error(error);
     stream = null;
-    setStatus("카메라를 시작할 수 없습니다. 브라우저 권한 또는 HTTPS 접속을 확인하세요.");
+    setStatus("카메라를 시작할 수 없습니다. 카메라 권한 또는 HTTPS 접속을 확인하세요.");
   }
 
   setButtons();
@@ -191,9 +223,10 @@ function captureLightPainting() {
 
   isCapturing = true;
   originalDataUrl = null;
+
   setButtons();
   setProgress(0);
-  setStatus(`${durationSelect.value}초 동안 빛을 움직이세요.`);
+  setStatus(`${durationSelect.value}초 동안 RGB 빛을 움직이세요.`);
 
   function step(now) {
     const elapsed = now - startTime;
@@ -232,8 +265,12 @@ function captureLightPainting() {
 
       isCapturing = false;
       setProgress(100);
-      setStatus("촬영이 완료되었습니다. 결과물을 다운로드하거나 덧쓰기 수정할 수 있습니다.");
+      setStatus("촬영이 완료되었습니다. 결과 페이지로 이동합니다.");
       setButtons();
+
+      setTimeout(() => {
+        showPage("page-result");
+      }, 400);
     }
   }
 
@@ -248,6 +285,7 @@ function resetAll() {
 
   canvases.forEach((canvas) => {
     const ctx = canvas.getContext("2d");
+
     if (canvas === drawCanvas) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     } else {
@@ -275,9 +313,7 @@ function downloadOriginal() {
   downloadDataUrl(originalDataUrl, "rgb-light-painting-original.png");
 }
 
-function downloadEdited() {
-  if (!originalDataUrl) return;
-
+function createEditedDataUrl() {
   const tempCanvas = document.createElement("canvas");
   tempCanvas.width = baseCanvas.width;
   tempCanvas.height = baseCanvas.height;
@@ -286,8 +322,40 @@ function downloadEdited() {
   tempCtx.drawImage(baseCanvas, 0, 0);
   tempCtx.drawImage(drawCanvas, 0, 0);
 
-  const editedDataUrl = tempCanvas.toDataURL("image/png");
+  return tempCanvas.toDataURL("image/png");
+}
+
+function downloadEdited() {
+  if (!originalDataUrl) return;
+
+  const editedDataUrl = createEditedDataUrl();
   downloadDataUrl(editedDataUrl, "rgb-light-painting-edited.png");
+}
+
+function renderFinalPreview() {
+  if (!originalDataUrl) return;
+
+  const width = baseCanvas.width;
+  const height = baseCanvas.height;
+
+  originalPreviewCanvas.width = width;
+  originalPreviewCanvas.height = height;
+  editedPreviewCanvas.width = width;
+  editedPreviewCanvas.height = height;
+
+  const originalCtx = originalPreviewCanvas.getContext("2d");
+  const editedCtx = editedPreviewCanvas.getContext("2d");
+
+  const originalImg = new Image();
+  originalImg.onload = () => {
+    originalCtx.clearRect(0, 0, width, height);
+    originalCtx.drawImage(originalImg, 0, 0, width, height);
+  };
+  originalImg.src = originalDataUrl;
+
+  editedCtx.clearRect(0, 0, width, height);
+  editedCtx.drawImage(baseCanvas, 0, 0);
+  editedCtx.drawImage(drawCanvas, 0, 0);
 }
 
 function getPointerPoint(event) {
@@ -358,6 +426,15 @@ function clearDrawing() {
   ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 }
 
+pageButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    if (button.disabled) return;
+
+    const pageId = button.dataset.page;
+    showPage(pageId);
+  });
+});
+
 thresholdRange.addEventListener("input", () => {
   thresholdValue.textContent = thresholdRange.value;
 });
@@ -373,6 +450,8 @@ resetBtn.addEventListener("click", resetAll);
 
 downloadOriginalBtn.addEventListener("click", downloadOriginal);
 downloadEditedBtn.addEventListener("click", downloadEdited);
+downloadOriginalFinalBtn.addEventListener("click", downloadOriginal);
+downloadEditedFinalBtn.addEventListener("click", downloadEdited);
 
 penBtn.addEventListener("click", () => setTool("pen"));
 eraserBtn.addEventListener("click", () => setTool("eraser"));
