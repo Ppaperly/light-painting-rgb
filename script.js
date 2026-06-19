@@ -49,6 +49,22 @@ let lastPoint = null;
 
 const MAX_CAPTURE_SIDE = 900;
 
+async function tryLandscapeFullscreen() {
+  try {
+    const element = document.documentElement;
+
+    if (element.requestFullscreen && !document.fullscreenElement) {
+      await element.requestFullscreen();
+    }
+
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (error) {
+    console.log("가로모드 고정은 이 브라우저에서 제한될 수 있습니다.", error);
+  }
+}
+
 function showPage(pageId) {
   pages.forEach((page) => {
     page.classList.toggle("active", page.id === pageId);
@@ -93,6 +109,11 @@ function setButtons() {
   });
 }
 
+function isPortraitMobile() {
+  return window.matchMedia("(orientation: portrait) and (max-width: 900px)").matches;
+}
+
+
 function getCanvasSizeFromVideo() {
   const videoWidth = video.videoWidth || 1280;
   const videoHeight = video.videoHeight || 720;
@@ -135,6 +156,8 @@ function resizeCanvases() {
 
 async function startCamera() {
   try {
+    await tryLandscapeFullscreen();
+
     setStatus("카메라 권한을 요청하는 중입니다.");
 
     stream = await navigator.mediaDevices.getUserMedia({
@@ -202,8 +225,13 @@ function loadOriginalToEditCanvas(dataUrl) {
 }
 
 function captureLightPainting() {
-  if (!stream || isCapturing) return;
+  if (isPortraitMobile()) {
+    setStatus("스마트폰을 가로로 돌린 뒤 촬영해주세요.");
+    return;
+  }
 
+  if (!stream || isCapturing) return;
+  
   resizeCanvases();
 
   const durationMs = Number(durationSelect.value) * 1000;
@@ -468,5 +496,14 @@ window.addEventListener("resize", () => {
     resizeCanvases();
   }
 });
+
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => {
+    if (stream && !originalDataUrl) {
+      resizeCanvases();
+    }
+  }, 400);
+});
+
 
 setButtons();
