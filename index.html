@@ -3,101 +3,188 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>RGB 라이트페인팅 촬영</title>
+  <title>RGB 라이트페인팅</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="app">
-    <header class="header">
+    <header class="top-header">
       <h1>RGB 라이트페인팅</h1>
-      <p>스마트폰 화면의 R, G, B 빛을 움직여 글씨를 만들어 보세요.</p>
+      <p>스마트폰 RGB 빛을 움직여 라이트페인팅 결과물을 만들어 보세요.</p>
     </header>
 
-    <section class="card">
-      <h2>1. 카메라</h2>
+    <nav class="step-nav">
+      <button class="step-dot active" data-page="page-home">1</button>
+      <button class="step-dot" data-page="page-camera">2</button>
+      <button class="step-dot" data-page="page-result" data-requires-result>3</button>
+      <button class="step-dot" data-page="page-edit" data-requires-result>4</button>
+      <button class="step-dot" data-page="page-final" data-requires-result>5</button>
+    </nav>
 
-      <div class="camera-box">
-        <video id="video" autoplay muted playsinline></video>
-      </div>
+    <!-- 1쪽: 안내 -->
+    <section id="page-home" class="page active">
+      <div class="card hero-card">
+        <h2>1. 활동 안내</h2>
 
-      <div class="controls">
-        <button id="startCameraBtn" class="primary">카메라 시작</button>
-        <button id="stopCameraBtn">카메라 종료</button>
-      </div>
+        <div class="guide-box">
+          <p><strong>촬영용 스마트폰</strong>으로 이 웹페이지에 접속합니다.</p>
+          <p><strong>다른 스마트폰</strong>에는 검은 배경 위 R, G, B 빛을 켜고 움직입니다.</p>
+          <p>촬영이 끝나면 빛의 궤적이 라이트페인팅처럼 합성됩니다.</p>
+        </div>
 
-      <div class="setting-grid">
-        <label>
-          촬영 시간
-          <select id="durationSelect">
-            <option value="3">3초</option>
-            <option value="4">4초</option>
-            <option value="5" selected>5초</option>
-            <option value="6">6초</option>
-            <option value="8">8초</option>
-          </select>
-        </label>
+        <div class="tip-box">
+          <h3>권장 조건</h3>
+          <ul>
+            <li>촬영 시간: 4~6초</li>
+            <li>밝기 기준: 150~180</li>
+            <li>촬영용 스마트폰은 최대한 고정</li>
+            <li>RGB 빛 스마트폰은 화면 전체보다 작은 점/막대 권장</li>
+            <li>교실은 최대한 어둡게 하기</li>
+          </ul>
+        </div>
 
-        <label>
-          밝기 기준
-          <input id="thresholdRange" type="range" min="80" max="250" value="160" />
-          <span id="thresholdValue">160</span>
-        </label>
-      </div>
-
-      <div class="controls">
-        <button id="captureBtn" class="primary">라이트페인팅 촬영</button>
-        <button id="resetBtn">초기화</button>
-      </div>
-
-      <div class="status">
-        <p id="statusText">카메라 시작 버튼을 눌러주세요.</p>
-        <div class="progress">
-          <div id="progressBar"></div>
+        <div class="page-buttons">
+          <button class="primary" data-page="page-camera">시작하기</button>
         </div>
       </div>
     </section>
 
-    <section class="card">
-      <h2>2. 촬영 결과</h2>
-      <canvas id="resultCanvas" class="result-canvas"></canvas>
+    <!-- 2쪽: 카메라 촬영 -->
+    <section id="page-camera" class="page">
+      <div class="card">
+        <h2>2. 카메라 촬영</h2>
 
-      <div class="controls">
-        <button id="downloadOriginalBtn">촬영 결과 다운로드</button>
+        <div class="camera-box">
+          <video id="video" autoplay muted playsinline></video>
+        </div>
+
+        <div class="controls">
+          <button id="startCameraBtn" class="primary">카메라 시작</button>
+          <button id="stopCameraBtn">카메라 종료</button>
+        </div>
+
+        <div class="setting-grid">
+          <label>
+            촬영 시간
+            <select id="durationSelect">
+              <option value="3">3초</option>
+              <option value="4">4초</option>
+              <option value="5" selected>5초</option>
+              <option value="6">6초</option>
+              <option value="8">8초</option>
+            </select>
+          </label>
+
+          <label>
+            밝기 기준
+            <input id="thresholdRange" type="range" min="80" max="250" value="160" />
+            <span id="thresholdValue">160</span>
+          </label>
+        </div>
+
+        <div class="controls">
+          <button id="captureBtn" class="primary">라이트페인팅 촬영</button>
+          <button id="resetBtn">초기화</button>
+        </div>
+
+        <div class="status">
+          <p id="statusText">카메라 시작 버튼을 눌러주세요.</p>
+          <div class="progress">
+            <div id="progressBar"></div>
+          </div>
+        </div>
+
+        <div class="page-buttons">
+          <button data-page="page-home">이전</button>
+          <button data-page="page-result" data-requires-result>결과 보기</button>
+        </div>
       </div>
     </section>
 
-    <section class="card">
-      <h2>3. 덧쓰기 수정</h2>
+    <!-- 3쪽: 결과 확인 -->
+    <section id="page-result" class="page">
+      <div class="card">
+        <h2>3. 촬영 결과 확인</h2>
 
-      <div class="tool-row">
-        <label>
-          펜 색
-          <input id="penColor" type="color" value="#ff2a2a" />
-        </label>
+        <canvas id="resultCanvas" class="result-canvas"></canvas>
 
-        <label>
-          굵기
-          <input id="penSize" type="range" min="2" max="40" value="8" />
-          <span id="penSizeValue">8</span>
-        </label>
-      </div>
+        <div class="controls">
+          <button id="downloadOriginalBtn" class="primary">촬영 결과 다운로드</button>
+        </div>
 
-      <div class="controls">
-        <button id="penBtn" class="active-tool">펜</button>
-        <button id="eraserBtn">지우개</button>
-        <button id="clearDrawingBtn">덧쓰기 지우기</button>
-      </div>
-
-      <div class="edit-wrap">
-        <canvas id="baseCanvas"></canvas>
-        <canvas id="drawCanvas"></canvas>
-      </div>
-
-      <div class="controls">
-        <button id="downloadEditedBtn" class="primary">수정 결과 다운로드</button>
+        <div class="page-buttons">
+          <button data-page="page-camera">다시 촬영하기</button>
+          <button data-page="page-edit" data-requires-result>덧쓰기 수정하기</button>
+        </div>
       </div>
     </section>
 
+    <!-- 4쪽: 덧쓰기 수정 -->
+    <section id="page-edit" class="page">
+      <div class="card">
+        <h2>4. 덧쓰기 수정</h2>
+
+        <div class="tool-row">
+          <label>
+            펜 색
+            <input id="penColor" type="color" value="#7c4dff" />
+          </label>
+
+          <label>
+            굵기
+            <input id="penSize" type="range" min="2" max="40" value="8" />
+            <span id="penSizeValue">8</span>
+          </label>
+        </div>
+
+        <div class="controls">
+          <button id="penBtn" class="active-tool">펜</button>
+          <button id="eraserBtn">지우개</button>
+          <button id="clearDrawingBtn">덧쓰기 지우기</button>
+        </div>
+
+        <div class="edit-wrap">
+          <canvas id="baseCanvas"></canvas>
+          <canvas id="drawCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+          <button id="downloadEditedBtn" class="primary">수정 결과 다운로드</button>
+        </div>
+        
+        <div class="page-buttons">
+          <button data-page="page-result">이전</button>
+          <button data-page="page-final" data-requires-result>수정 전/후 비교하기</button>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 5쪽: 최종 비교 -->
+    <section id="page-final" class="page">
+      <div class="card">
+        <h2>5. 수정 전/후 비교</h2>
+
+        <div class="compare-grid">
+          <div class="compare-card">
+            <h3>수정 전</h3>
+            <canvas id="originalPreviewCanvas" class="preview-canvas"></canvas>
+            <button id="downloadOriginalFinalBtn">수정 전 다운로드</button>
+          </div>
+
+          <div class="compare-card">
+            <h3>수정 후</h3>
+            <canvas id="editedPreviewCanvas" class="preview-canvas"></canvas>
+            <button id="downloadEditedFinalBtn" class="primary">수정 후 다운로드</button>
+          </div>  
+        </div>
+
+        <div class="page-buttons">
+          <button data-page="page-edit">다시 수정하기</button>
+          <button data-page="page-camera">새로 촬영하기</button>
+        </div>
+      </div>
+    </section>
+    
     <canvas id="frameCanvas" class="hidden"></canvas>
   </main>
 
