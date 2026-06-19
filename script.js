@@ -1,3 +1,10 @@
+import {
+  countdownLabel,
+  remainingTimeLabel,
+  soundCue,
+  needsDestructiveConfirmation
+} from "./capture-guidance.js";
+
 const $ = (id) => document.getElementById(id);
 
 const pages = document.querySelectorAll(".page");
@@ -18,6 +25,7 @@ const resetBtn = $("resetBtn");
 const durationSelect = $("durationSelect");
 const thresholdRange = $("thresholdRange");
 const thresholdValue = $("thresholdValue");
+const soundSelect = $("soundSelect");
 
 const statusText = $("statusText");
 const progressBar = $("progressBar");
@@ -41,7 +49,11 @@ const downloadEditedFinalBtn = $("downloadEditedFinalBtn");
 
 let stream = null;
 let isCapturing = false;
+let isCountingDown = false;
 let originalDataUrl = null;
+let audioContext = null;
+let captureRunId = 0;
+let allowPageExit = false;
 
 let drawing = false;
 let currentTool = "pen";
@@ -95,11 +107,15 @@ function setProgress(percent) {
 function setButtons() {
   const hasCamera = !!stream;
   const hasResult = !!originalDataUrl;
+  const captureBusy = isCapturing || isCountingDown;
 
   startCameraBtn.disabled = hasCamera;
   stopCameraBtn.disabled = !hasCamera;
-  captureBtn.disabled = !hasCamera || isCapturing;
-  resetBtn.disabled = isCapturing;
+  captureBtn.disabled = !hasCamera || captureBusy;
+  resetBtn.disabled = captureBusy;
+  durationSelect.disabled = captureBusy;
+  thresholdRange.disabled = captureBusy;
+  soundSelect.disabled = captureBusy;
 
   downloadOriginalBtn.disabled = !hasResult;
   downloadEditedBtn.disabled = !hasResult;
@@ -109,10 +125,53 @@ function setButtons() {
   });
 }
 
+function prepareAudio() {
+  if (soundSelect.value !== "on") return;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    audioContext ||= new AudioContextClass();
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  } catch (error) {
+    console.log("알림음을 준비하지 못했습니다.", error);
+  }
+}
+
+function playTone(frequency, duration, delay = 0) {
+  if (!audioContext || soundSelect.value !== "on") return;
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const startAt = audioContext.currentTime + delay;
+    const endAt = startAt + duration;
+    oscillator.frequency.value = frequency;
+    oscillator.type = "sine";
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(endAt + 0.02);
+  } catch (error) {
+    console.log("알림음을 재생하지 못했습니다.", error);
+  }
+}
+
+function playCue(type, countdownSecond) {
+  if (soundSelect.value !== "on") return;
+  const cue = soundCue(type, countdownSecond);
+  playTone(cue.frequency, cue.duration);
+  if (cue.pattern === "double") playTone(cue.frequency + 140, cue.duration, 0.16);
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 function isPortraitMobile() {
   return window.matchMedia("(orientation: portrait) and (max-width: 900px)").matches;
 }
-
 
 function getCanvasSizeFromVideo() {
   const videoWidth = video.videoWidth || 1280;
@@ -224,14 +283,31 @@ function loadOriginalToEditCanvas(dataUrl) {
   img.src = dataUrl;
 }
 
-function captureLightPainting() {
+async function captureLightPainting() {
   if (isPortraitMobile()) {
     setStatus("스마트폰을 가로로 돌린 뒤 촬영해주세요.");
     return;
   }
 
-  if (!stream || isCapturing) return;
-  
+  if (!stream || isCapturing || isCountingDown) return;
+
+  prepareAudio();
+  const runId = ++captureRunId;
+  isCountingDown = true;
+  setButtons();
+  setProgress(0);
+
+  for (let second = 3; second >= 1; second -= 1) {
+    if (runId !== captureRunId) return;
+    setStatus(countdownLabel(second));
+    playCue("countdown", second);
+    await wait(1000);
+  }
+
+  if (runId !== captureRunId) return;
+  isCountingDown = false;
+  isCapturing = true;
+  playCue("start");
   resizeCanvases();
 
   const durationMs = Number(durationSelect.value) * 1000;
@@ -248,17 +324,26 @@ function captureLightPainting() {
 
   const startTime = performance.now();
   const gain = 0.45;
+  let lastAnnouncedSecond = Math.ceil(durationMs / 1000);
 
-  isCapturing = true;
   originalDataUrl = null;
 
   setButtons();
   setProgress(0);
-  setStatus(`${durationSelect.value}초 동안 RGB 빛을 움직이세요.`);
+  setStatus(remainingTimeLabel(durationMs));
 
   function step(now) {
+    if (runId !== captureRunId) return;
     const elapsed = now - startTime;
     const progress = elapsed / durationMs;
+    const remainingMs = Math.max(0, durationMs - elapsed);
+    const remainingSecond = Math.ceil(remainingMs / 1000);
+
+    setStatus(remainingTimeLabel(remainingMs));
+    if (remainingSecond < lastAnnouncedSecond && remainingSecond > 0) {
+      lastAnnouncedSecond = remainingSecond;
+      playCue("tick");
+    }
 
     frameCtx.drawImage(video, 0, 0, width, height);
 
@@ -292,6 +377,7 @@ function captureLightPainting() {
       loadOriginalToEditCanvas(originalDataUrl);
 
       isCapturing = false;
+      playCue("complete");
       setProgress(100);
       setStatus("촬영이 완료되었습니다. 결과 페이지로 이동합니다.");
       setButtons();
@@ -305,7 +391,13 @@ function captureLightPainting() {
   requestAnimationFrame(step);
 }
 
-function resetAll() {
+function resetAll({ confirmFirst = true } = {}) {
+  if (confirmFirst && needsDestructiveConfirmation(Boolean(originalDataUrl))
+    && !confirm("현재 결과를 지우고 초기화할까요?")) return false;
+
+  captureRunId += 1;
+  isCountingDown = false;
+  isCapturing = false;
   originalDataUrl = null;
   setProgress(0);
 
@@ -323,6 +415,17 @@ function resetAll() {
   });
 
   setStatus("초기화되었습니다.");
+  setButtons();
+  return true;
+}
+
+function cancelActiveCapture() {
+  if (!isCountingDown && !isCapturing) return;
+  captureRunId += 1;
+  isCountingDown = false;
+  isCapturing = false;
+  setProgress(0);
+  setStatus("앱 전환으로 촬영이 중단되었습니다. 다시 촬영해 주세요.");
   setButtons();
 }
 
@@ -459,6 +562,10 @@ pageButtons.forEach((button) => {
     if (button.disabled) return;
 
     const pageId = button.dataset.page;
+    if (button.hasAttribute("data-recapture") && needsDestructiveConfirmation(Boolean(originalDataUrl))) {
+      if (!confirm("현재 결과를 지우고 다시 촬영할까요?")) return;
+      resetAll({ confirmFirst: false });
+    }
     showPage(pageId);
   });
 });
@@ -474,7 +581,7 @@ penSize.addEventListener("input", () => {
 startCameraBtn.addEventListener("click", startCamera);
 stopCameraBtn.addEventListener("click", stopCamera);
 captureBtn.addEventListener("click", captureLightPainting);
-resetBtn.addEventListener("click", resetAll);
+resetBtn.addEventListener("click", () => resetAll());
 
 downloadOriginalBtn.addEventListener("click", downloadOriginal);
 downloadEditedBtn.addEventListener("click", downloadEdited);
@@ -505,5 +612,25 @@ window.addEventListener("orientationchange", () => {
   }, 400);
 });
 
+window.addEventListener("beforeunload", (event) => {
+  if (allowPageExit) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
+
+history.pushState({ activityGuard: true }, "");
+window.addEventListener("popstate", () => {
+  if (allowPageExit) return;
+  if (confirm("활동을 마쳤습니까?")) {
+    allowPageExit = true;
+    history.back();
+    return;
+  }
+  history.pushState({ activityGuard: true }, "");
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) cancelActiveCapture();
+});
 
 setButtons();
