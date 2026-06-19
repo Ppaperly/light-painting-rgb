@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>RGB 라이트페인팅 촬영</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>RGB 라이트페인팅</h1>
+      <p>스마트폰 화면의 R, G, B 빛을 움직여 글씨를 만들어 보세요.</p>
+    </header>
+
+    <section class="card">
+      <h2>1. 카메라</h2>
+
+      <div class="camera-box">
+        <video id="video" autoplay muted playsinline></video>
+      </div>
+
+      <div class="controls">
+        <button id="startCameraBtn" class="primary">카메라 시작</button>
+        <button id="stopCameraBtn">카메라 종료</button>
+      </div>
+
+      <div class="setting-grid">
+        <label>
+          촬영 시간
+          <select id="durationSelect">
+            <option value="3">3초</option>
+            <option value="4">4초</option>
+            <option value="5" selected>5초</option>
+            <option value="6">6초</option>
+            <option value="8">8초</option>
+          </select>
+        </label>
+
+        <label>
+          밝기 기준
+          <input id="thresholdRange" type="range" min="80" max="250" value="160" />
+          <span id="thresholdValue">160</span>
+        </label>
+      </div>
+
+      <div class="controls">
+        <button id="captureBtn" class="primary">라이트페인팅 촬영</button>
+        <button id="resetBtn">초기화</button>
+      </div>
+
+      <div class="status">
+        <p id="statusText">카메라 시작 버튼을 눌러주세요.</p>
+        <div class="progress">
+          <div id="progressBar"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. 촬영 결과</h2>
+      <canvas id="resultCanvas" class="result-canvas"></canvas>
+
+      <div class="controls">
+        <button id="downloadOriginalBtn">촬영 결과 다운로드</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. 덧쓰기 수정</h2>
+
+      <div class="tool-row">
+        <label>
+          펜 색
+          <input id="penColor" type="color" value="#ff2a2a" />
+        </label>
+
+        <label>
+          굵기
+          <input id="penSize" type="range" min="2" max="40" value="8" />
+          <span id="penSizeValue">8</span>
+        </label>
+      </div>
+
+      <div class="controls">
+        <button id="penBtn" class="active-tool">펜</button>
+        <button id="eraserBtn">지우개</button>
+        <button id="clearDrawingBtn">덧쓰기 지우기</button>
+      </div>
+
+      <div class="edit-wrap">
+        <canvas id="baseCanvas"></canvas>
+        <canvas id="drawCanvas"></canvas>
+      </div>
+
+      <div class="controls">
+        <button id="downloadEditedBtn" class="primary">수정 결과 다운로드</button>
+      </div>
+    </section>
+
+    <canvas id="frameCanvas" class="hidden"></canvas>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
