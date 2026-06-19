@@ -78,6 +78,12 @@
             <input id="thresholdRange" type="range" min="80" max="250" value="160" />
             <span id="thresholdValue">160</span>
           </label>
+          <label>알림음
+            <select id="soundSelect">
+              <option value="on" selected>사용</option>
+              <option value="off">사용 안 함</option>
+            </select>
+          </label>
         </div>
         <div class="controls">
           <button id="captureBtn" class="primary">라이트페인팅 촬영</button>
@@ -102,7 +108,7 @@
           <button id="downloadOriginalBtn" class="primary">촬영 결과 다운로드</button>
         </div>
         <div class="page-buttons">
-          <button data-page="page-camera">다시 촬영하기</button>
+          <button data-page="page-camera" data-recapture>다시 촬영하기</button>
           <button data-page="page-edit" data-requires-result>덧쓰기 수정하기</button>
         </div>
       </div>
@@ -154,13 +160,13 @@
         </div>
         <div class="page-buttons">
           <button data-page="page-edit">다시 수정하기</button>
-          <button data-page="page-camera">새로 촬영하기</button>
+          <button data-page="page-camera" data-recapture>새로 촬영하기</button>
         </div>
       </div>
     </section>
 
     <canvas id="frameCanvas" class="hidden"></canvas>
   </main>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
