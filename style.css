@@ -327,38 +327,7 @@ input[type="color"] {
   display: none;
 }
 
-@media (max-width: 640px) {
-  .app {
-    padding: 12px;
-  }
-
-  .top-header {
-    padding: 12px 8px;
-  }
-
-  .card {
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .hero-card {
-    min-height: auto;
-  }
-
-  .setting-grid,
-  .tool-row {
-    grid-template-columns: 1fr;
-  }
-
-  .controls button,
-  .page-buttons button {
-    flex: 1 1 100%;
-  }
-
-  .page-buttons {
-    gap: 8px;
-  }
-  .compare-grid {
+.compare-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
@@ -391,10 +360,40 @@ input[type="color"] {
 }
 
 @media (max-width: 640px) {
+  .app {
+    padding: 12px;
+  }
+
+  .top-header {
+    padding: 12px 8px;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .hero-card {
+    min-height: auto;
+  }
+
+  .setting-grid,
+  .tool-row {
+    grid-template-columns: 1fr;
+  }
+
+  .controls button,
+  .page-buttons button {
+    flex: 1 1 100%;
+  }
+
+  .page-buttons {
+    gap: 8px;
+  }
+
   .compare-grid {
     grid-template-columns: 1fr;
   }
-}
 }
 
 .rotate-notice {
@@ -490,4 +489,3 @@ input[type="color"] {
     max-height: 68vh;
   }
 }
-
